@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>StreetFlow.Collector.Core</RootNamespace>
+    <Description>StreetFlow collector — pure, platform-independent logic: campaign config, GPS point detection, plate normalization/hashing, color heuristic, local capture store, sync stub, ALPR pipeline orchestration.</Description>
+  </PropertyGroup>
+
+</Project>

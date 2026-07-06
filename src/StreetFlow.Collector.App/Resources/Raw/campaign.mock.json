@@ -1,0 +1,20 @@
+{
+  "campaign_id": "8f7c3f2a-1b2c-4d5e-9f0a-112233445566",
+  "name": "Demo campaign — Vinohradská (mock)",
+  "area_polygon": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [14.4180, 50.0870],
+        [14.4230, 50.0870],
+        [14.4230, 50.0920],
+        [14.4180, 50.0920],
+        [14.4180, 50.0870]
+      ]
+    ]
+  },
+  "points": [
+    { "point_id": "north", "name": "sever — vjezd", "lat": 50.0910, "lng": 14.4200 },
+    { "point_id": "south", "name": "jih — výjezd", "lat": 50.0880, "lng": 14.4210 }
+  ]
+}

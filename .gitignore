@@ -1,0 +1,27 @@
+## .NET / MAUI
+bin/
+obj/
+out/
+artifacts/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+
+## NuGet
+*.nupkg
+packages/
+
+## Test results
+TestResults/
+*.trx
+coverage*.json
+coverage*.xml
+
+## ONNX models are downloaded/managed locally, not committed
+models/*.onnx
+
+## OS noise
+.DS_Store
+Thumbs.db

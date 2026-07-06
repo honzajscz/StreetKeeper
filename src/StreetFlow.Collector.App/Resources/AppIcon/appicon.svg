@@ -1,0 +1,7 @@
+<svg width="456" height="456" viewBox="0 0 456 456" xmlns="http://www.w3.org/2000/svg">
+  <rect width="456" height="456" rx="90" fill="#16233B"/>
+  <rect x="88" y="180" width="280" height="96" rx="16" fill="#F5F7FA" stroke="#2E86DE" stroke-width="10"/>
+  <circle cx="128" cy="228" r="14" fill="#2E86DE"/>
+  <rect x="160" y="204" width="176" height="48" rx="6" fill="none"/>
+  <text x="248" y="245" font-family="Arial, sans-serif" font-size="52" font-weight="bold" fill="#16233B" text-anchor="middle">SF</text>
+</svg>

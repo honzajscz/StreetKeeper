@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:pages="clr-namespace:StreetFlow.Collector.App.Pages"
+       x:Class="StreetFlow.Collector.App.AppShell"
+       Shell.FlyoutBehavior="Disabled">
+
+    <TabBar>
+        <ShellContent Title="Campaign"
+                      Route="campaign"
+                      ContentTemplate="{DataTemplate pages:CampaignPage}" />
+        <ShellContent Title="Capture"
+                      Route="capture"
+                      ContentTemplate="{DataTemplate pages:CapturePage}" />
+        <ShellContent Title="Captures"
+                      Route="captures"
+                      ContentTemplate="{DataTemplate pages:CapturesPage}" />
+    </TabBar>
+
+</Shell>

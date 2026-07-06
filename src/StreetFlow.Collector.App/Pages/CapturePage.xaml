@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="StreetFlow.Collector.App.Pages.CapturePage"
+             Title="Capture">
+    <Grid RowDefinitions="Auto,*,Auto,Auto" Padding="12" RowSpacing="10">
+
+        <Label x:Name="SessionLabel"
+               Grid.Row="0"
+               Style="{StaticResource Hint}"
+               Text="No capture session — load a campaign and detect your point first." />
+
+        <Border Grid.Row="1" StrokeThickness="1" Stroke="#33888888">
+            <toolkit:CameraView x:Name="Camera"
+                                MediaCaptured="OnMediaCaptured" />
+        </Border>
+
+        <Label x:Name="StatsLabel"
+               Grid.Row="2"
+               FontSize="16"
+               Text="Captured this session: 0" />
+
+        <Button x:Name="ToggleButton"
+                Grid.Row="3"
+                Text="Start collection"
+                IsEnabled="false"
+                Clicked="OnToggleClicked" />
+
+    </Grid>
+</ContentPage>

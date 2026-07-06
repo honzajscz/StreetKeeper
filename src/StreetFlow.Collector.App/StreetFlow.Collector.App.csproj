@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Android first (spec §2); iOS is explicitly out of scope for iteration 1 (§7). -->
+    <TargetFrameworks>net10.0-android</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>StreetFlow.Collector.App</RootNamespace>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+
+    <ApplicationTitle>StreetFlow Collector</ApplicationTitle>
+    <ApplicationId>org.streetflow.collector</ApplicationId>
+    <ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">26.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <MauiIcon Include="Resources\AppIcon\appicon.svg" Color="#16233B" />
+    <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#16233B" BaseSize="128,128" />
+    <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.80" />
+    <PackageReference Include="CommunityToolkit.Maui.Camera" Version="6.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\StreetFlow.Collector.Alpr\StreetFlow.Collector.Alpr.csproj" />
+    <ProjectReference Include="..\StreetFlow.Collector.Core\StreetFlow.Collector.Core.csproj" />
+  </ItemGroup>
+
+</Project>

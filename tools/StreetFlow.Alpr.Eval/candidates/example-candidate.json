@@ -1,0 +1,15 @@
+{
+  "name": "yolo-plate + paddle-rec (example)",
+  "detector": {
+    "model_path": "../models/plate-detector.onnx",
+    "input_size": 640,
+    "confidence_threshold": 0.35,
+    "nms_iou_threshold": 0.45
+  },
+  "ocr": {
+    "model_path": "../models/plate-ocr.onnx",
+    "input_width": 320,
+    "input_height": 48,
+    "charset": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  }
+}

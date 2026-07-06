@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="StreetFlow.Collector.App.App">
+    <Application.Resources>
+        <ResourceDictionary>
+            <Color x:Key="Primary">#16233B</Color>
+            <Color x:Key="Accent">#2E86DE</Color>
+            <Color x:Key="Danger">#C0392B</Color>
+
+            <Style TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource Accent}" />
+                <Setter Property="TextColor" Value="White" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Padding" Value="14,10" />
+            </Style>
+            <Style TargetType="Label" x:Key="SectionTitle">
+                <Setter Property="FontSize" Value="18" />
+                <Setter Property="FontAttributes" Value="Bold" />
+            </Style>
+            <Style TargetType="Label" x:Key="Hint">
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="TextColor" Value="Gray" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

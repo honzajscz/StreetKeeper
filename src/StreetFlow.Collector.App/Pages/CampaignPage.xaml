@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="StreetFlow.Collector.App.Pages.CampaignPage"
+             Title="Campaign">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="14">
+
+            <Label Text="1 · Load campaign" Style="{StaticResource SectionTitle}" />
+            <Label Style="{StaticResource Hint}"
+                   Text="Enter the campaign ID handed out by the organizer. Iteration 1 reads the campaign from a bundled mock config." />
+            <Entry x:Name="CampaignIdEntry"
+                   Placeholder="campaign id (GUID)" />
+            <Button x:Name="LoadCampaignButton"
+                    Text="Load campaign"
+                    Clicked="OnLoadCampaignClicked" />
+            <Label x:Name="CampaignInfoLabel" IsVisible="false" />
+
+            <BoxView HeightRequest="1" Color="#33888888" Margin="0,8" />
+
+            <Label Text="2 · Detect my point (GPS)" Style="{StaticResource SectionTitle}" />
+            <Label Style="{StaticResource Hint}"
+                   Text="Stand at your assigned boundary point; the app matches your GPS position to the nearest campaign point." />
+            <Button x:Name="DetectPointButton"
+                    Text="Detect my point"
+                    IsEnabled="false"
+                    Clicked="OnDetectPointClicked" />
+            <Label x:Name="PointInfoLabel" IsVisible="false" />
+
+            <BoxView HeightRequest="1" Color="#33888888" Margin="0,8" />
+
+            <Label Text="3 · Collect" Style="{StaticResource SectionTitle}" />
+            <Label x:Name="AlprStatusLabel" Style="{StaticResource Hint}" />
+            <Button x:Name="StartButton"
+                    Text="Go to capture"
+                    IsEnabled="false"
+                    Clicked="OnStartClicked" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

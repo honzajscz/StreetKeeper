@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:pages="clr-namespace:StreetFlow.Collector.App.Pages"
+             x:Class="StreetFlow.Collector.App.Pages.CapturesPage"
+             Title="Captures">
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="12" RowSpacing="10">
+
+        <Label x:Name="SummaryLabel"
+               Grid.Row="0"
+               Style="{StaticResource Hint}"
+               Text="Verification is always on: check each capture's photo against the decoded plate." />
+
+        <CollectionView x:Name="CapturesView" Grid.Row="1">
+            <CollectionView.EmptyView>
+                <Label Text="No captures yet." HorizontalOptions="Center" VerticalOptions="Center" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="pages:CaptureItem">
+                    <Border StrokeThickness="1" Stroke="#33888888" Margin="0,4" Padding="10">
+                        <Grid ColumnDefinitions="96,*,Auto" ColumnSpacing="10" RowDefinitions="Auto,Auto,Auto">
+
+                            <Image Grid.RowSpan="3"
+                                   Source="{Binding PlateImage}"
+                                   WidthRequest="96"
+                                   HeightRequest="48"
+                                   Aspect="AspectFit" />
+
+                            <Label Grid.Column="1" Grid.Row="0"
+                                   Text="{Binding PlateDisplay}"
+                                   FontSize="18"
+                                   FontAttributes="Bold" />
+                            <Label Grid.Column="1" Grid.Row="1"
+                                   Text="{Binding Detail}"
+                                   FontSize="12"
+                                   TextColor="Gray" />
+                            <Label Grid.Column="1" Grid.Row="2"
+                                   Text="{Binding StatusDisplay}"
+                                   FontSize="12" />
+
+                            <VerticalStackLayout Grid.Column="2" Grid.RowSpan="3" Spacing="6">
+                                <Button Text="Correct"
+                                        FontSize="12"
+                                        Padding="8,4"
+                                        IsEnabled="{Binding IsValid}"
+                                        Clicked="OnCorrectClicked"
+                                        CommandParameter="{Binding .}" />
+                                <Button Text="Invalidate"
+                                        FontSize="12"
+                                        Padding="8,4"
+                                        BackgroundColor="{StaticResource Danger}"
+                                        IsEnabled="{Binding IsValid}"
+                                        Clicked="OnInvalidateClicked"
+                                        CommandParameter="{Binding .}" />
+                            </VerticalStackLayout>
+
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <HorizontalStackLayout Grid.Row="2" Spacing="10">
+            <Button Text="Sync (stub)" Clicked="OnSyncClicked" />
+            <Button Text="Delete all local data"
+                    BackgroundColor="{StaticResource Danger}"
+                    Clicked="OnDeleteAllClicked" />
+        </HorizontalStackLayout>
+
+    </Grid>
+</ContentPage>

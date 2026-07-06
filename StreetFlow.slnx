@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/StreetFlow.Collector.Alpr/StreetFlow.Collector.Alpr.csproj" />
+    <Project Path="src/StreetFlow.Collector.App/StreetFlow.Collector.App.csproj" />
+    <Project Path="src/StreetFlow.Collector.Core/StreetFlow.Collector.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/StreetFlow.Collector.Core.Tests/StreetFlow.Collector.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/StreetFlow.Alpr.Eval/StreetFlow.Alpr.Eval.csproj" />
+  </Folder>
+</Solution>
