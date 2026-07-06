@@ -31,8 +31,8 @@ carry the photo or the plate text.
 
 | Project | What it is |
 | --- | --- |
-| `src/StreetFlow.Collector.Core` | Pure, dependency-free logic: campaign config parsing, GPS point detector, plate normalizer, salted SHA-256 plate hasher, color heuristic, ALPR pipeline orchestration, local capture store (invalidate / correct → re-hash / wipe), sync service + stub sink. Developed TDD-first. |
-| `tests/StreetFlow.Collector.Core.Tests` | xunit suite for every unit above (83 tests). |
+| `src/StreetFlow.Collector.Core` | Pure, dependency-free logic: campaign config parsing, GPS point detector, plate normalizer, salted SHA-256 plate hasher, color heuristic, ALPR pipeline orchestration, local capture store (invalidate / correct → re-hash / wipe), sync service + stub sink, and the **transit analyzer** (PRD §5 pairing + headline metric). Developed TDD-first. |
+| `tests/StreetFlow.Collector.Core.Tests` | xunit suite for every unit above (97 tests). |
 | `src/StreetFlow.Collector.Alpr` | ONNX Runtime implementations: YOLO-style plate detector, CTC (CRNN / PaddleOCR-rec) OCR, SkiaSharp image codec. Model-agnostic — concrete models are chosen by the eval step. |
 | `tools/StreetFlow.Alpr.Eval` | Offline eval harness (**the spec's first implementation step**): compares 2–3 candidate model pairs on labeled Czech plate photos and reports detection / exact-match / char accuracy. See its [README](tools/StreetFlow.Alpr.Eval/README.md). |
 | `src/StreetFlow.Collector.App` | .NET MAUI app (Android-first): campaign loading (bundled mock JSON in iteration 1), GPS → boundary-point detection, camera preview + frame sampling, always-on verification & correction UI, one-button local wipe, stub sync. |
@@ -62,6 +62,21 @@ plates to pick the winning candidate pair, then install it on the phone at
 the two `.onnx` files it references. Without models the app still runs — campaign
 loading, GPS point detection, the capture store and the verification UI all work; the
 capture screen tells you why recognition is inactive.
+
+## Transit analysis (PRD §5)
+
+`TransitAnalyzer` implements the proof logic as a pure function over anonymous
+observations: the same `plate_hash` at **two different boundary points** within the
+time window **X** (default 5 min, `TransitAnalysisOptions.TransitWindow`) is a
+**transit passage**; a hash match is only confirmed when the vehicle fingerprint
+(color / type) does not contradict it; everything that never pairs counts as
+**local**, which biases the headline number downwards — the defensible direction
+for a public claim. Headline metric: `TransitShare = transit / (transit + local)`.
+
+It lives in Core deliberately: the Public Dashboard (Blazor WASM) will run this
+exact code in the browser, and pilot data can be analyzed with it (including
+calibration of X from the `TransitPassage.Duration` distribution) before the
+dashboard surface exists.
 
 ## Provisional decisions on the spec's open questions (§8)
 
