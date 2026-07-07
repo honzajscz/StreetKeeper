@@ -3,6 +3,9 @@
     <Project Path="src/StreetFlow.Collector.Alpr/StreetFlow.Collector.Alpr.csproj" />
     <Project Path="src/StreetFlow.Collector.App/StreetFlow.Collector.App.csproj" />
     <Project Path="src/StreetFlow.Collector.Core/StreetFlow.Collector.Core.csproj" />
+    <Project Path="src/StreetFlow.Dashboard/StreetFlow.Dashboard.csproj" />
+    <Project Path="src/StreetFlow.OrganizerConsole/StreetFlow.OrganizerConsole.csproj" />
+    <Project Path="src/StreetFlow.Supabase/StreetFlow.Supabase.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/StreetFlow.Collector.Core.Tests/StreetFlow.Collector.Core.Tests.csproj" />

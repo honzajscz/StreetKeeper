@@ -1,0 +1,231 @@
+@page "/"
+@using System.Globalization
+@using StreetFlow.Collector.Core.Campaign
+@using StreetFlow.Supabase
+@inject IJSRuntime Js
+@inject HttpClient Http
+@inject SupabaseOptions SupabaseOptions
+@implements IAsyncDisposable
+
+<PageTitle>StreetFlow — založení kampaně</PageTitle>
+
+<h1>Založit kampaň</h1>
+<p class="sf-hint">
+    Kampaň = sledovaná oblast + hraniční body (vjezdy/výjezdy). Identifikátor kampaně
+    se generuje tady v prohlížeči; po uložení ho rozdáte dobrovolníkům.
+</p>
+
+<div class="sf-card">
+    <div class="sf-row">
+        <label for="campaign-name">Název kampaně:</label>
+        <input id="campaign-name" type="text" @bind="_name" placeholder="např. Vinohradská — pilot" />
+    </div>
+    <div class="sf-row">
+        <span>ID kampaně: <span class="sf-code">@_campaignId</span></span>
+        <button class="sf-secondary" @onclick="RegenerateId" disabled="@_saved">Vygenerovat nové</button>
+    </div>
+</div>
+
+<h2>Mapa</h2>
+<p class="sf-hint">
+    Režim <b>Oblast</b>: klikáním do mapy přidáváte vrcholy polygonu sledované oblasti.
+    Režim <b>Body</b>: klikáním umísťujete hraniční body; pojmenujte je v tabulce níže.
+</p>
+
+<div class="sf-row">
+    <button class="@ModeClass(EditMode.Area)" @onclick="() => _mode = EditMode.Area">Oblast (@_polygon.Count vrcholů)</button>
+    <button class="@ModeClass(EditMode.Points)" @onclick="() => _mode = EditMode.Points">Body (@_points.Count)</button>
+    <button class="sf-secondary" @onclick="UndoVertex" disabled="@(_polygon.Count == 0)">Zpět vrchol</button>
+    <button class="sf-secondary" @onclick="ClearPolygon" disabled="@(_polygon.Count == 0)">Smazat oblast</button>
+</div>
+
+<div id="organizer-map" class="sf-map"></div>
+
+<h2>Hraniční body</h2>
+@if (_points.Count == 0)
+{
+    <p class="sf-hint">Zatím žádné body — přepněte na režim <b>Body</b> a klikněte do mapy.</p>
+}
+else
+{
+    <table class="sf-points">
+        <thead>
+            <tr><th>ID</th><th>Název (např. „sever — vjezd")</th><th>Poloha</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var point in _points)
+            {
+                <tr>
+                    <td><span class="sf-code">@point.Id</span></td>
+                    <td><input type="text" @bind="point.Name" /></td>
+                    <td>@point.Lat.ToString("F5", CultureInfo.InvariantCulture), @point.Lng.ToString("F5", CultureInfo.InvariantCulture)</td>
+                    <td><button class="sf-danger" @onclick="() => RemovePoint(point)">Odebrat</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<h2>Uložení</h2>
+@if (!IsSupabaseConfigured)
+{
+    <div class="sf-card sf-error">
+        Supabase není nakonfigurováno — doplňte <span class="sf-code">Supabase.Url</span> a
+        <span class="sf-code">Supabase.AnonKey</span> do <span class="sf-code">wwwroot/appsettings.json</span>
+        (viz <span class="sf-code">supabase/README.md</span> v repozitáři).
+    </div>
+}
+
+@if (_error is not null)
+{
+    <div class="sf-card sf-error">@_error</div>
+}
+
+@if (_saved)
+{
+    <div class="sf-card sf-success">
+        <b>Kampaň uložena.</b><br />
+        Dobrovolníkům rozdejte ID kampaně:
+        <span class="sf-code">@_campaignId</span>
+        <button class="sf-secondary" @onclick="CopyId">Kopírovat ID</button><br />
+        <span class="sf-hint">Veřejný dashboard: otevřete stránku dashboardu s parametrem
+        <span class="sf-code">?campaign=@_campaignId</span>.</span>
+    </div>
+}
+else
+{
+    <button @onclick="SaveAsync" disabled="@(!CanSave)">Uložit kampaň do Supabase</button>
+    <p class="sf-hint">
+        Ke uložení je potřeba: název, alespoň 3 vrcholy oblasti a alespoň 2 hraniční
+        body (MVP: jeden vjezd + jeden výjezd).
+    </p>
+}
+
+@code {
+    private enum EditMode { Area, Points }
+
+    private sealed class EditablePoint
+    {
+        public required string Id { get; init; }
+        public string Name { get; set; } = "";
+        public double Lat { get; init; }
+        public double Lng { get; init; }
+    }
+
+    private Guid _campaignId = Guid.NewGuid();
+    private string _name = "";
+    private EditMode _mode = EditMode.Area;
+    private readonly List<(double Lat, double Lng)> _polygon = [];
+    private readonly List<EditablePoint> _points = [];
+    private int _pointCounter;
+    private bool _saved;
+    private string? _error;
+    private DotNetObjectReference<Index>? _selfRef;
+
+    private bool IsSupabaseConfigured =>
+        !string.IsNullOrWhiteSpace(SupabaseOptions.Url) && !string.IsNullOrWhiteSpace(SupabaseOptions.AnonKey);
+
+    private bool CanSave =>
+        IsSupabaseConfigured && !string.IsNullOrWhiteSpace(_name) && _polygon.Count >= 3 && _points.Count >= 2;
+
+    private string ModeClass(EditMode mode) => _mode == mode ? "sf-mode-active" : "sf-secondary";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+        _selfRef = DotNetObjectReference.Create(this);
+        await Js.InvokeVoidAsync("streetflowMap.init", "organizer-map", 50.088, 14.421, 14, _selfRef);
+    }
+
+    [JSInvokable]
+    public async Task OnMapClicked(double lat, double lng)
+    {
+        if (_saved)
+            return;
+
+        if (_mode == EditMode.Area)
+        {
+            _polygon.Add((lat, lng));
+            await PushPolygonAsync();
+        }
+        else
+        {
+            _pointCounter++;
+            _points.Add(new EditablePoint { Id = $"p{_pointCounter}", Name = $"bod {_pointCounter}", Lat = lat, Lng = lng });
+            await PushPointsAsync();
+        }
+        StateHasChanged();
+    }
+
+    private async Task UndoVertex()
+    {
+        if (_polygon.Count > 0)
+        {
+            _polygon.RemoveAt(_polygon.Count - 1);
+            await PushPolygonAsync();
+        }
+    }
+
+    private async Task ClearPolygon()
+    {
+        _polygon.Clear();
+        await PushPolygonAsync();
+    }
+
+    private async Task RemovePoint(EditablePoint point)
+    {
+        _points.Remove(point);
+        await PushPointsAsync();
+    }
+
+    private void RegenerateId() => _campaignId = Guid.NewGuid();
+
+    private Task PushPolygonAsync() =>
+        Js.InvokeVoidAsync("streetflowMap.setPolygon", "organizer-map",
+            _polygon.Select(v => new[] { v.Lat, v.Lng }).ToArray()).AsTask();
+
+    private Task PushPointsAsync() =>
+        Js.InvokeVoidAsync("streetflowMap.setPoints", "organizer-map",
+            _points.Select(p => new { lat = p.Lat, lng = p.Lng, label = p.Name }).ToArray()).AsTask();
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+        try
+        {
+            var config = new CampaignConfig(
+                _campaignId,
+                _name.Trim(),
+                BuildPolygonGeoJson(),
+                _points.Select(p => new CampaignPoint(p.Id, p.Name.Trim(), p.Lat, p.Lng)).ToList());
+
+            var client = new SupabaseClient(Http, SupabaseOptions);
+            await client.SaveCampaignAsync(config);
+            _saved = true;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Uložení selhalo: {ex.Message}";
+        }
+    }
+
+    /// <summary>GeoJSON polygon: one closed ring of [lng, lat] positions.</summary>
+    private string BuildPolygonGeoJson()
+    {
+        var ring = _polygon.Select(v => new[] { v.Lng, v.Lat }).ToList();
+        ring.Add(ring[0]); // GeoJSON rings are explicitly closed
+        var coordinates = string.Join(",", ring.Select(c =>
+            $"[{c[0].ToString("R", CultureInfo.InvariantCulture)},{c[1].ToString("R", CultureInfo.InvariantCulture)}]"));
+        return $$"""{"type":"Polygon","coordinates":[[{{coordinates}}]]}""";
+    }
+
+    private async Task CopyId() =>
+        await Js.InvokeVoidAsync("streetflowMap.copyText", _campaignId.ToString("D"));
+
+    public async ValueTask DisposeAsync()
+    {
+        _selfRef?.Dispose();
+        await ValueTask.CompletedTask;
+    }
+}

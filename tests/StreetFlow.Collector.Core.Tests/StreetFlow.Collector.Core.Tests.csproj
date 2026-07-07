@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\StreetFlow.Collector.Core\StreetFlow.Collector.Core.csproj" />
+    <ProjectReference Include="..\..\src\StreetFlow.Supabase\StreetFlow.Supabase.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,282 @@
+@page "/"
+@using System.Globalization
+@using StreetFlow.Collector.Core.Analysis
+@using StreetFlow.Collector.Core.Campaign
+@using StreetFlow.Collector.Core.Sync
+@using StreetFlow.Supabase
+@inject IJSRuntime Js
+@inject HttpClient Http
+@inject SupabaseOptions SupabaseOptions
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+
+<PageTitle>StreetFlow — kolik aut tudy jen projíždí?</PageTitle>
+
+<h1>Kolik aut oblastí jen projíždí?</h1>
+<p class="sf-hint">
+    Dashboard načte anonymní záznamy průjezdů a přímo v prohlížeči je spáruje:
+    stejný otisk značky na dvou různých hraničních bodech v krátkém okně = tranzit.
+    Konkrétní SPZ nikdy nikdo nevidí.
+</p>
+
+@if (!IsSupabaseConfigured)
+{
+    <div class="sf-card sf-error">
+        Supabase není nakonfigurováno — doplňte <span class="sf-code">Supabase.Url</span> a
+        <span class="sf-code">Supabase.AnonKey</span> do <span class="sf-code">wwwroot/appsettings.json</span>.
+    </div>
+}
+
+<div class="sf-row">
+    <input type="text" @bind="_campaignIdText" placeholder="ID kampaně (GUID)" />
+    <button @onclick="LoadAsync" disabled="@(_loading || !IsSupabaseConfigured)">
+        @(_loading ? "Načítám…" : "Načíst data")
+    </button>
+</div>
+
+@if (_error is not null)
+{
+    <div class="sf-card sf-error">@_error</div>
+}
+
+@if (_campaign is not null && _result is not null)
+{
+    <h2>@_campaign.Name</h2>
+
+    <div class="sf-share-card">
+        <div class="sf-share-number">@HeadlinePercentText</div>
+        <div class="sf-share-claim">aut naší oblastí jen projíždí</div>
+        <div class="sf-share-meta">
+            @_result.TransitCount tranzitních průjezdů · @_result.LocalCount místních ·
+            sběr @PeriodText<br />
+            <span class="sf-share-brand">STREETFLOW</span> · občanské měření dopravy
+        </div>
+    </div>
+
+    <div class="sf-row">
+        <button class="sf-secondary" @onclick="CopySummary">Kopírovat shrnutí pro sdílení</button>
+    </div>
+
+    <div class="sf-stats">
+        <div class="sf-stat">
+            <div class="sf-stat-value">@_records.Count</div>
+            <div class="sf-stat-label">anonymních záznamů</div>
+        </div>
+        <div class="sf-stat">
+            <div class="sf-stat-value">@UniqueVehicles</div>
+            <div class="sf-stat-label">unikátních otisků vozidel</div>
+        </div>
+        <div class="sf-stat">
+            <div class="sf-stat-value">@_result.TransitCount</div>
+            <div class="sf-stat-label">tranzitních průjezdů</div>
+        </div>
+        <div class="sf-stat">
+            <div class="sf-stat-value">@_result.LocalCount</div>
+            <div class="sf-stat-label">místních pozorování</div>
+        </div>
+        <div class="sf-stat">
+            <div class="sf-stat-value">@_result.FingerprintRejectedPairs</div>
+            <div class="sf-stat-label">párů zamítnutých otiskem (barva/typ)</div>
+        </div>
+    </div>
+
+    <h2>Kalibrace časového okna X</h2>
+    <p class="sf-hint">
+        Návrh počítá s oknem 3–5 minut a doladěním z dat pilotu (PRD §5/§9). Posuvník
+        přepočítá statistiky okamžitě — data se znovu nenačítají.
+        @if (MedianTransitMinutes is not null)
+        {
+            <text>Medián doby průjezdu spárovaných aut: <b>@MedianTransitMinutes min</b>.</text>
+        }
+    </p>
+    <div class="sf-row">
+        <input type="range" min="1" max="15" step="1" value="@_windowMinutes"
+               @oninput="OnWindowChanged" />
+        <span>X = <b>@_windowMinutes min</b></span>
+    </div>
+
+    <h2>Oblast a body</h2>
+    <div id="dashboard-map" class="sf-map"></div>
+}
+
+@code {
+    private string _campaignIdText = "";
+    private bool _loading;
+    private string? _error;
+    private CampaignConfig? _campaign;
+    private IReadOnlyList<AnonymousRecord> _records = [];
+    private TransitAnalysisResult? _result;
+    private int _windowMinutes = 5;
+    private bool _mapPushed;
+    private DotNetObjectReference<Index>? _selfRef;
+
+    private bool IsSupabaseConfigured =>
+        !string.IsNullOrWhiteSpace(SupabaseOptions.Url) && !string.IsNullOrWhiteSpace(SupabaseOptions.AnonKey);
+
+    private int UniqueVehicles => _records.Select(r => r.PlateHash).Distinct().Count();
+
+    private string HeadlinePercentText =>
+        _result?.TransitShare is { } share
+            ? $"{Math.Round(share * 100)} %"
+            : "— %";
+
+    private string PeriodText
+    {
+        get
+        {
+            if (_records.Count == 0)
+                return "zatím bez záznamů";
+            var from = _records.Min(r => r.Timestamp).ToLocalTime();
+            var to = _records.Max(r => r.Timestamp).ToLocalTime();
+            return $"{from:d. M. yyyy H:mm}–{to:d. M. yyyy H:mm}";
+        }
+    }
+
+    private int? MedianTransitMinutes
+    {
+        get
+        {
+            if (_result is null || _result.Transits.Count == 0)
+                return null;
+            var ordered = _result.Transits.Select(t => t.Duration.TotalMinutes).Order().ToList();
+            return (int)Math.Round(ordered[ordered.Count / 2]);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        // Allow deep-linking: dashboard.example/?campaign=<guid>
+        var query = new Uri(Navigation.Uri).Query.TrimStart('?');
+        foreach (var pair in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var keyValue = pair.Split('=', 2);
+            if (keyValue.Length == 2 && keyValue[0] == "campaign")
+                _campaignIdText = Uri.UnescapeDataString(keyValue[1]);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrWhiteSpace(_campaignIdText) && IsSupabaseConfigured)
+        {
+            await LoadAsync();
+            StateHasChanged();
+        }
+
+        if (_campaign is not null && !_mapPushed)
+        {
+            _mapPushed = true;
+            await PushMapAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+        if (!Guid.TryParse(_campaignIdText?.Trim(), out var campaignId))
+        {
+            _error = "Zadejte platné ID kampaně (GUID).";
+            return;
+        }
+
+        _loading = true;
+        try
+        {
+            var client = new SupabaseClient(Http, SupabaseOptions);
+            _campaign = await client.GetCampaignAsync(campaignId);
+            if (_campaign is null)
+            {
+                _error = "Kampaň s tímto ID v databázi není.";
+                _result = null;
+                return;
+            }
+
+            _records = await client.GetRecordsAsync(campaignId);
+            Recompute();
+            _mapPushed = false; // re-render the map for the (possibly new) campaign
+        }
+        catch (Exception ex)
+        {
+            _error = $"Načtení selhalo: {ex.Message}";
+            _result = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnWindowChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var minutes))
+        {
+            _windowMinutes = minutes;
+            Recompute();
+        }
+    }
+
+    private void Recompute()
+    {
+        // The pairing runs entirely in the browser — the PRD's "statistics computed
+        // client-side" — reusing the identical TransitAnalyzer code the pilot
+        // analysis and tests exercise.
+        _result = TransitAnalyzer.Analyze(
+            _records.Select(Observation.FromAnonymousRecord),
+            new TransitAnalysisOptions { TransitWindow = TimeSpan.FromMinutes(_windowMinutes) });
+    }
+
+    private async Task PushMapAsync()
+    {
+        if (_campaign is null)
+            return;
+
+        _selfRef ??= DotNetObjectReference.Create(this);
+        await Js.InvokeVoidAsync("streetflowMap.init", "dashboard-map", 50.088, 14.421, 13, (object?)null);
+
+        if (_campaign.AreaPolygonGeoJson is not null)
+        {
+            var ring = ParsePolygonRing(_campaign.AreaPolygonGeoJson);
+            if (ring.Length > 0)
+                await Js.InvokeVoidAsync("streetflowMap.setPolygon", "dashboard-map", ring);
+        }
+
+        await Js.InvokeVoidAsync("streetflowMap.setPoints", "dashboard-map",
+            _campaign.Points.Select(p => new { lat = p.Lat, lng = p.Lng, label = p.Name }).ToArray());
+        await Js.InvokeVoidAsync("streetflowMap.fit", "dashboard-map");
+    }
+
+    /// <summary>Extracts the outer ring of a GeoJSON polygon as [lat, lng] pairs for Leaflet.</summary>
+    private static double[][] ParsePolygonRing(string geoJson)
+    {
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(geoJson);
+            var coordinates = document.RootElement.GetProperty("coordinates")[0];
+            return coordinates.EnumerateArray()
+                .Select(pos => new[] { pos[1].GetDouble(), pos[0].GetDouble() }) // GeoJSON is [lng, lat]
+                .ToArray();
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private async Task CopySummary()
+    {
+        if (_campaign is null || _result is null)
+            return;
+
+        var summary =
+            $"{HeadlinePercentText} aut oblastí „{_campaign.Name}“ jen projíždí " +
+            $"({_result.TransitCount} tranzitních průjezdů vs. {_result.LocalCount} místních; sběr {PeriodText}). " +
+            $"Měřeno občansky projektem StreetFlow — bez ukládání SPZ, jen nevratné otisky.";
+        await Js.InvokeVoidAsync("streetflowMap.copyText", summary);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _selfRef?.Dispose();
+        await ValueTask.CompletedTask;
+    }
+}

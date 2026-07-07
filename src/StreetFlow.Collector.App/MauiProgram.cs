@@ -23,18 +23,32 @@ public static class MauiProgram
         builder.Services.AddSingleton<ICaptureStore>(_ =>
             new FileCaptureStore(Path.Combine(FileSystem.AppDataDirectory, "captures")));
 
-        // Iteration 1: campaign config comes from the bundled mock JSON; the
-        // Supabase-backed source replaces this registration in a later surface.
-        builder.Services.AddSingleton<ICampaignConfigSource>(_ =>
-            new LocalJsonCampaignConfigSource(async ct =>
+        // With {AppData}/supabase.json present, campaign config and record sync go
+        // against the shared database; otherwise the app keeps the iteration-1
+        // offline behavior: bundled mock campaign + stub sink.
+        builder.Services.AddSingleton<SupabaseConnection>();
+
+        builder.Services.AddSingleton<ICampaignConfigSource>(sp =>
+        {
+            var supabase = sp.GetRequiredService<SupabaseConnection>();
+            if (supabase.Client is not null)
+                return new global::StreetFlow.Supabase.SupabaseCampaignConfigSource(supabase.Client);
+
+            return new LocalJsonCampaignConfigSource(async ct =>
             {
                 using var stream = await FileSystem.OpenAppPackageFileAsync("campaign.mock.json");
                 using var reader = new StreamReader(stream);
                 return await reader.ReadToEndAsync(ct);
-            }));
+            });
+        });
 
-        // Iteration 1: sync is a stub — records only get marked, nothing leaves the phone (§3.10).
-        builder.Services.AddSingleton<IRecordSink, StubRecordSink>();
+        builder.Services.AddSingleton<IRecordSink>(sp =>
+        {
+            var supabase = sp.GetRequiredService<SupabaseConnection>();
+            return supabase.Client is not null
+                ? new global::StreetFlow.Supabase.SupabaseRecordSink(supabase.Client)
+                : new StubRecordSink();
+        });
         builder.Services.AddSingleton<CaptureSyncService>();
 
         builder.Services.AddSingleton<IJpegEncoder, SkiaImageCodec>();

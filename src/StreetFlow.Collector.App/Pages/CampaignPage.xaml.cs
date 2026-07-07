@@ -13,13 +13,14 @@ public partial class CampaignPage : ContentPage
     private readonly AppState _state;
     private readonly AlprRuntime _alpr;
 
-    public CampaignPage(ICampaignConfigSource configSource, AppState state, AlprRuntime alpr)
+    public CampaignPage(ICampaignConfigSource configSource, AppState state, AlprRuntime alpr, SupabaseConnection supabase)
     {
         InitializeComponent();
         _configSource = configSource;
         _state = state;
         _alpr = alpr;
         CampaignIdEntry.Text = DemoCampaignId;
+        DataSourceHint.Text = $"Enter the campaign ID handed out by the organizer. {supabase.Status}";
     }
 
     protected override void OnAppearing()

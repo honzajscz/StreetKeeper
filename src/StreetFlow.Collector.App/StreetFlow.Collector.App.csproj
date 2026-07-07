@@ -30,6 +30,7 @@
   <ItemGroup>
     <ProjectReference Include="..\StreetFlow.Collector.Alpr\StreetFlow.Collector.Alpr.csproj" />
     <ProjectReference Include="..\StreetFlow.Collector.Core\StreetFlow.Collector.Core.csproj" />
+    <ProjectReference Include="..\StreetFlow.Supabase\StreetFlow.Supabase.csproj" />
   </ItemGroup>
 
 </Project>

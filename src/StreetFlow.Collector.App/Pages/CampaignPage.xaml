@@ -7,8 +7,9 @@
         <VerticalStackLayout Padding="20" Spacing="14">
 
             <Label Text="1 · Load campaign" Style="{StaticResource SectionTitle}" />
-            <Label Style="{StaticResource Hint}"
-                   Text="Enter the campaign ID handed out by the organizer. Iteration 1 reads the campaign from a bundled mock config." />
+            <Label x:Name="DataSourceHint"
+                   Style="{StaticResource Hint}"
+                   Text="Enter the campaign ID handed out by the organizer." />
             <Entry x:Name="CampaignIdEntry"
                    Placeholder="campaign id (GUID)" />
             <Button x:Name="LoadCampaignButton"

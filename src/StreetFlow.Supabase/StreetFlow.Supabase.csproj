@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>StreetFlow.Supabase</RootNamespace>
+    <Description>Thin PostgREST client for the StreetFlow shared Supabase database: campaign configuration store and anonymous record sink/reader. Shared by the Organizer Console, Public Dashboard and the collector app.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\StreetFlow.Collector.Core\StreetFlow.Collector.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -28,15 +28,18 @@ public partial class CapturesPage : ContentPage
     private readonly ICaptureStore _store;
     private readonly CaptureSyncService _syncService;
     private readonly AppState _state;
+    private readonly SupabaseConnection _supabase;
     private readonly ObservableCollection<CaptureItem> _items = [];
 
-    public CapturesPage(ICaptureStore store, CaptureSyncService syncService, AppState state)
+    public CapturesPage(ICaptureStore store, CaptureSyncService syncService, AppState state, SupabaseConnection supabase)
     {
         InitializeComponent();
         _store = store;
         _syncService = syncService;
         _state = state;
+        _supabase = supabase;
         CapturesView.ItemsSource = _items;
+        SyncButton.Text = supabase.IsConnected ? "Sync to Supabase" : "Sync (stub)";
     }
 
     protected override async void OnAppearing()
@@ -127,10 +130,18 @@ public partial class CapturesPage : ContentPage
 
     private async void OnSyncClicked(object? sender, EventArgs e)
     {
-        var submitted = await _syncService.SyncPendingAsync();
-        await DisplayAlert("Sync (stub)",
-            $"{submitted} anonymous record(s) marked as sent. Iteration 1 has no Supabase backend yet — " +
-            "this only exercises the local side of the sync path.", "OK");
+        try
+        {
+            var submitted = await _syncService.SyncPendingAsync();
+            var message = _supabase.IsConnected
+                ? $"{submitted} anonymous record(s) sent to Supabase. Photos and plate text stayed on this phone."
+                : $"{submitted} anonymous record(s) marked as sent. {_supabase.Status}";
+            await DisplayAlert("Sync", message, "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Sync", $"Sync failed: {ex.Message}\nAlready-sent records stay marked; retry later.", "OK");
+        }
         await RefreshAsync();
     }
 

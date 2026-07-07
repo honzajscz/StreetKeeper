@@ -62,7 +62,7 @@
         </CollectionView>
 
         <HorizontalStackLayout Grid.Row="2" Spacing="10">
-            <Button Text="Sync (stub)" Clicked="OnSyncClicked" />
+            <Button x:Name="SyncButton" Text="Sync" Clicked="OnSyncClicked" />
             <Button Text="Delete all local data"
                     BackgroundColor="{StaticResource Danger}"
                     Clicked="OnDeleteAllClicked" />
