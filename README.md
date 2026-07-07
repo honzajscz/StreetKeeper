@@ -4,10 +4,15 @@ StreetFlow proves that cars mostly **drive through** a watched area (transit /
 shortcut) instead of having a destination there — producing one shareable headline
 number (e.g. *"68 % of cars just pass through our street"*).
 
-The design documents live in [`docs/superpowers/specs/`](docs/superpowers/specs/):
+Documentation:
 
-- [StreetFlow — PRD](docs/superpowers/specs/2026-06-16-streetflow-design.md)
-- [Collector app (MAUI + ALPR), iteration 1](docs/superpowers/specs/2026-06-16-streetflow-collector-app-design.md)
+- [Usage guide — all roles and scenarios](docs/usage.md) (organizer, ML eval,
+  volunteer, public/media, offline demo, the full MVP micro-pilot)
+- [Development guide](docs/development.md) (build/test matrix, project layering,
+  extension points, verification checklist, troubleshooting)
+- Design docs in [`docs/superpowers/specs/`](docs/superpowers/specs/):
+  [StreetFlow — PRD](docs/superpowers/specs/2026-06-16-streetflow-design.md) ·
+  [Collector app (MAUI + ALPR), iteration 1](docs/superpowers/specs/2026-06-16-streetflow-collector-app-design.md)
 
 All four PRD surfaces are in this repo — everything runs on clients, there is no
 custom backend (Supabase free tier is the shared database):
